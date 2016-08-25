@@ -1,4 +1,5 @@
-<<<<<<< HEAD
+.cache-main
+.cache-tests
 logs
 target
 /.idea
@@ -7,7 +8,6 @@ target
 /.project
 /.settings
 /RUNNING_PID
-=======
 # Ignore Play! working directory #
 bin/
 /db
@@ -23,4 +23,7 @@ server.pid
 *.eml
 /dist/
 .cache
->>>>>>> aea23b0d779ead53139bb5def30722d3784bde32
+
+app-2.11/
+project/project/
+test-2.11/
