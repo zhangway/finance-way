@@ -1,0 +1,21 @@
+@import domain.Account
+@(accounts: Seq[Account])
+
+@main("Account details"){
+	<table class="table">
+		<thead>
+			<tr>
+				<th>Name</th>
+				<th>Account Number</th>
+			</tr>
+		</thead>
+		<tbody>
+			@for(account <- accounts) {
+				<tr>
+					<td>@account.name</td>
+					<td>@account.accountNo</td>
+				</tr>
+			}
+		</tbody>
+	</table>
+}
