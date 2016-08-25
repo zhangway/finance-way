@@ -1,4 +1,5 @@
 @import model.Account
+@import views.Helpers
 @(accounts: Seq[Account])
 
 @main("Account details"){
@@ -13,7 +14,7 @@
 			@for(account <- accounts) {
 				<tr>
 					<td>@account.name</td>
-					<td>@account.accountNo</td>
+					<td>@Helpers.displayAccountNumber(account.accountNo)</td>
 				</tr>
 			}
 		</tbody>
