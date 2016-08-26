@@ -1,5 +1,6 @@
 .cache-main
 .cache-tests
+.xls
 logs
 target
 /.idea
