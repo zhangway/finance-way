@@ -18,4 +18,17 @@ libraryDependencies ++= Seq(
   "org.webjars" % "bootstrap" % "3.3.1"
 )
 
+// https://mvnrepository.com/artifact/org.apache.poi/poi
+
+libraryDependencies += "org.apache.poi" % "poi" % "3.14"
+
+// https://mvnrepository.com/artifact/org.apache.poi/poi-ooxml-schemas
+libraryDependencies += "org.apache.poi" % "poi-ooxml" % "3.14"
+
+
+
+
+
+
+
 
