@@ -1,6 +1,11 @@
 @helper.form(action = routes.HomeController.fileUpload, 'enctype -> "multipart/form-data") {
 
 	<input type="file" name="transaction">
+    <select id="bank" name="bank">
+        <option selected="selected" value="notselected">--------</option>
+        <option value="dnb">DNB</option>
+        <option value="gjensidige">Gjensidige</option>
+    </select>
 
 	<p>
 		<input type="submit" value="upload">

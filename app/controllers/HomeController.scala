@@ -2,24 +2,20 @@ package controllers
 
 
 import java.io.{File, FileInputStream}
-import java.text.SimpleDateFormat
-import java.time.{LocalDateTime, LocalTime, ZoneId}
 import java.time.format.DateTimeFormatter
-import java.util.Date
+import java.time.{LocalDate, LocalDateTime, LocalTime, ZoneId}
 import javax.inject._
 
 import domain.TradeType
 import model.Transaction
-import org.apache.poi.hssf.usermodel.{HSSFDateUtil, HSSFWorkbook}
+import org.apache.poi.hssf.usermodel.HSSFWorkbook
 import org.apache.poi.poifs.filesystem.POIFSFileSystem
-import org.apache.poi.ss.usermodel.DateUtil.isCellDateFormatted
-import org.apache.poi.ss.usermodel.{Cell, DataFormatter, DateUtil, WorkbookFactory}
-import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import org.apache.poi.ss.usermodel.Cell
 import play.api.mvc._
 import services.AccountService
 
 import scala.collection.JavaConversions._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success, Try}
 
 
@@ -52,24 +48,49 @@ class HomeController @Inject()(accountService: AccountService)(implicit ec: Exec
     Ok("he")
   }
 
-  private def allTransactions(file: File) = {
+  private def getCellString(cell: Cell) = {
+    cell.getCellType match {
+      case Cell.CELL_TYPE_STRING => {
+        println(cell.getStringCellValue)
+        cell.getStringCellValue
+      }
+      case Cell.CELL_TYPE_NUMERIC => {
+        cell.getNumericCellValue
+      }
+      case _ =>
+        " "
+    }
+  }
+
+  private def gjensidigeAllTransactions(file: File) = {
     val fs = new POIFSFileSystem(new FileInputStream(file))
     val wb: HSSFWorkbook = new HSSFWorkbook(fs)
     val sheet = wb.getSheetAt(0)
 
-    def getCellString(cell: Cell) = {
-      cell.getCellType match {
-        case Cell.CELL_TYPE_STRING => {
-          println(cell.getStringCellValue)
-          cell.getStringCellValue
-        }
-        case Cell.CELL_TYPE_NUMERIC => {
-          cell.getNumericCellValue
-        }
-        case _                      =>
-          " "
+    val rows = sheet.rowIterator().drop(1)
+    rows.map { row =>
+      val d = row.getCell(0).getStringCellValue
+      val dt = LocalDate.parse(d, DateTimeFormatter.ofPattern("dd.MM.yyyy"))
+      val trandeDateTime = LocalDateTime.of(dt, LocalTime.of(0, 0))
+      val description = row.getCell(3).getStringCellValue
+      val withdrawCell = row.getCell(4)
+      val depositCell = row.getCell(5)
+      val tradeType = if ((withdrawCell == null || withdrawCell.getCellType == Cell.CELL_TYPE_BLANK) && (depositCell != null || depositCell.getCellType != Cell.CELL_TYPE_BLANK)) TradeType.Deposit else TradeType.WithDrawal
+      val amount = tradeType match {
+        case TradeType.WithDrawal => withdrawCell.getNumericCellValue.abs
+        case TradeType.Deposit => depositCell.getNumericCellValue
+        case _ => -1
       }
-    }
+      //println(s"${tradeType}: ${tradeDateTime} - ${amount} - Desc: ${description}")
+      Transaction(trandeDateTime, description, tradeType, amount)
+    }.toList
+  }
+
+  private def dbnAllTransactions(file: File) = {
+    val fs = new POIFSFileSystem(new FileInputStream(file))
+    val wb: HSSFWorkbook = new HSSFWorkbook(fs)
+    val sheet = wb.getSheetAt(0)
+
     val rows = sheet.rowIterator().drop(1)
     rows.map { row =>
       val d = row.getCell(0).getDateCellValue
@@ -78,12 +99,12 @@ class HomeController @Inject()(accountService: AccountService)(implicit ec: Exec
       val clock = description.split(" ").lastOption
       val time = clock flatMap { s =>
         val f = DateTimeFormatter.ofPattern("HH.mm")
-        val d  = Try(LocalTime.parse(s, f))
+        val d = Try(LocalTime.parse(s, f))
         d match {
           case Success(t) => {
             Some(t)
           }
-          case Failure(e ) => None
+          case Failure(e) => None
         }
       }
       val tradeDateTime = dt.withHour(time.map(_.getHour) getOrElse 0).withMinute(time.map(_.getMinute) getOrElse 0)
@@ -110,19 +131,28 @@ class HomeController @Inject()(accountService: AccountService)(implicit ec: Exec
     Ok(views.html.upload())
   }
 
+
+
   def fileUpload = Action(parse.multipartFormData) { request =>
+    val multipartFormData = request.body.asFormUrlEncoded
+    for ((k, v) <- multipartFormData) println(k + "--->" + v.mkString(","))
+    def allTransactions(bank: String, file: File) = {
+      bank.toLowerCase match {
+        case "dnb"        => dbnAllTransactions(file)
+        case "gjensidige" => gjensidigeAllTransactions(file)
+      }
+    }
+    val bank = multipartFormData.get("bank").map { x => x.mkString } getOrElse ("")
     request.body.file("transaction").map { transaction =>
-      val filename = transaction.filename
-      val contentType = transaction.contentType
-      val all = allTransactions(transaction.ref.file)
+      val all = allTransactions(bank.toLowerCase, transaction.ref.file)
+      val withDrawalTotal = all.filter(_.tradeType == TradeType.WithDrawal)
+      val withDrawalMoreThan1k = withDrawalTotal.filter(_.amount >= 1000)
       val deposits = all.filter(_.tradeType == TradeType.Deposit)
-      val total = deposits.map(_.amount).sum
-      val actioTrans = deposits.filter(_.description.contains("Actio Ip AS"))
-      val fromActio = actioTrans.map(_.amount).sum
-      val uibTrans = deposits.filter(_.description.contains("Universitetet i Bergen"))
-      val fromUib = uibTrans.map(_.amount).sum
-      println(s"total:${total}")
-      Ok(views.html.deposits(total, fromActio, fromUib, actioTrans, uibTrans))
+
+      val salary = deposits.filter(_.description.toLowerCase.contains("lønn"))
+
+
+      Ok(views.html.deposits(deposits.sortWith(_.amount > _.amount), salary, withDrawalTotal.sortWith(_.amount > _.amount), withDrawalMoreThan1k.sortWith(_.amount > _.amount)))
     }.getOrElse {
       Redirect(routes.HomeController.upload).flashing(
         "error" -> "Missing file")

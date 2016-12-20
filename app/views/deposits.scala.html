@@ -1,13 +1,12 @@
 @import model.Transaction
-@(total: BigDecimal, fromActio: BigDecimal, fromUib: BigDecimal, actio: List[Transaction], uib: List[Transaction])
+@(total: List[Transaction], salary: List[Transaction], totalWithDrawal: List[Transaction], moreThan1KWithdrawal: List[Transaction])
 @main("deposits") {
 	<div class="summary">
-		<h1>@total</h1>
-		<h2><a data-toggle="collapse" href="#collapseActio" aria-expanded="Actio:">Actio:</a>@fromActio</h2>
-		<h2><a data-toggle="collapse" href="#collapseUib" aria-expanded="UiB:">UiB:</a>@fromUib</h2>
-		<div class="collapse" id="collapseActio">
+
+		<h2><a data-toggle="collapse" href="#collapseTotalWithDrawal" aria-expanded="totalWithDrawal">Total Withdrawal:</a>@totalWithDrawal.map(_.amount).sum</h2>
+		<div class="collapse" id="collapseTotalWithDrawal">
 			<div class="card card-block">
-				<table class="table table-striped">
+				<table class="table table-striped table-hover">
 					<thead class="thead-inverse">
 						<tr>
 							<th>Date</th>
@@ -16,20 +15,21 @@
 						</tr>
 					</thead>
 					<tbody>
-						@actio.map { t =>
-							<tr>
-								<td>@t.dateTime</td>
-								<td>@t.description</td>
-								<td>@t.amount</td>
-							</tr>
-						}
+					@totalWithDrawal.sortWith(_.amount > _.amount).map { t =>
+						<tr>
+							<td>@t.dateTime</td>
+							<td>@t.description</td>
+							<td>@t.amount</td>
+						</tr>
+					}
 					</tbody>
 				</table>
 			</div>
 		</div>
-		<div class="collapse" id="collapseUib">
+		<h2><a data-toggle="collapse" href="#collapseMoreThan1KWithDrawal" aria-expanded="moreThan1KWithDrawal">MoreThan1KWithDrawal:</a>@moreThan1KWithdrawal.map(_.amount).sum</h2>
+		<div class="collapse" id="collapseMoreThan1KWithDrawal">
 			<div class="card card-block">
-				<table class="table table-striped">
+				<table class="table table-striped table-hover">
 					<thead class="thead-inverse">
 						<tr>
 							<th>Date</th>
@@ -38,7 +38,56 @@
 						</tr>
 					</thead>
 					<tbody>
-					@uib.map { t =>
+					@moreThan1KWithdrawal.sortWith(_.amount > _.amount).map { t =>
+						<tr>
+							<td>@t.dateTime</td>
+							<td>@t.description</td>
+							<td>@t.amount</td>
+						</tr>
+					}
+					</tbody>
+				</table>
+			</div>
+		</div>
+
+
+		<h2><a data-toggle="collapse" href="#collapseTotal" aria-expanded="totalDeposit">Total:</a>@total.map(_.amount).sum</h2>
+		<div class="collapse" id="collapseTotal">
+			<div class="card card-block">
+				<table class="table table-striped table-hover">
+					<thead class="thead-inverse">
+						<tr>
+							<th>Date</th>
+							<th>Description</th>
+							<th>Amount</th>
+						</tr>
+					</thead>
+					<tbody>
+					@total.map { t =>
+						<tr>
+							<td>@t.dateTime</td>
+							<td>@t.description</td>
+							<td>@t.amount</td>
+						</tr>
+					}
+					</tbody>
+				</table>
+			</div>
+		</div>
+		<h2><a data-toggle="collapse" href="#collapseSalary" aria-expanded="salary">Salary:</a>@salary.map(_.amount).sum</h2>
+
+		<div class="collapse" id="collapseSalary">
+			<div class="card card-block">
+				<table class="table table-striped table-hover">
+					<thead class="thead-inverse">
+						<tr>
+							<th>Date</th>
+							<th>Description</th>
+							<th>Amount</th>
+						</tr>
+					</thead>
+					<tbody>
+					@salary.map { t =>
 						<tr>
 							<td>@t.dateTime</td>
 							<td>@t.description</td>
