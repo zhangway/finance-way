@@ -5,7 +5,10 @@
 # An example controller showing a sample home page
 GET        /                    controllers.HomeController.index
 GET        /accounts            controllers.HomeController.accounts
+GET        /selectaccount            controllers.HomeController.selectaccount
 GET        /excel               controllers.HomeController.excel
+GET        /upload              controllers.HomeController.upload
+POST       /upload              controllers.HomeController.fileUpload
 # An example controller showing how to use dependency injection
 GET        /count               controllers.CountController.count
 # An example controller showing how to write asynchronous code

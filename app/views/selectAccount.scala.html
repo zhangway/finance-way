@@ -1,0 +1,32 @@
+@(accounts: Seq[String])
+
+@main("Account"){
+	<script>
+		$(document).ready(function () {
+			function update_org_select() {
+				if ($("#org").val() !== "notselected") {
+					$("#submit").removeAttr("disabled");
+				} else {
+					$("#submit").attr("disabled", "disabled");
+				}
+			}
+			$("#org").change(update_org_select);
+			update_org_select();
+		});
+	</script>
+	<select id="org" name="org">
+		<option selected="selected" value="notselected">--------</option>
+		<option value="hihm.no">Hedmark University of Applied Sciences</option>
+		<option value="nmbu.no">Norwegian University of Life Sciences</option>
+		<option value="ntnu.no">NTNU</option>
+		<option value="uit.no">UiT The Arctic University of Norway</option>
+		<option value="uninett.no">UNINETT</option>
+		<option value="uib.no">University of Bergen</option>
+		<option value="uio.no">University of Oslo</option>
+	</select>
+	<input id="submit" class="submit" type="submit" value="Continue »" name="submit">
+
+
+
+
+}

@@ -1,0 +1,9 @@
+@helper.form(action = routes.HomeController.fileUpload, 'enctype -> "multipart/form-data") {
+
+	<input type="file" name="transaction">
+
+	<p>
+		<input type="submit" value="upload">
+	</p>
+
+}

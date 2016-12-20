@@ -1,0 +1,54 @@
+@import model.Transaction
+@(total: BigDecimal, fromActio: BigDecimal, fromUib: BigDecimal, actio: List[Transaction], uib: List[Transaction])
+@main("deposits") {
+	<div class="summary">
+		<h1>@total</h1>
+		<h2><a data-toggle="collapse" href="#collapseActio" aria-expanded="Actio:">Actio:</a>@fromActio</h2>
+		<h2><a data-toggle="collapse" href="#collapseUib" aria-expanded="UiB:">UiB:</a>@fromUib</h2>
+		<div class="collapse" id="collapseActio">
+			<div class="card card-block">
+				<table class="table table-striped">
+					<thead class="thead-inverse">
+						<tr>
+							<th>Date</th>
+							<th>Description</th>
+							<th>Amount</th>
+						</tr>
+					</thead>
+					<tbody>
+						@actio.map { t =>
+							<tr>
+								<td>@t.dateTime</td>
+								<td>@t.description</td>
+								<td>@t.amount</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		</div>
+		<div class="collapse" id="collapseUib">
+			<div class="card card-block">
+				<table class="table table-striped">
+					<thead class="thead-inverse">
+						<tr>
+							<th>Date</th>
+							<th>Description</th>
+							<th>Amount</th>
+						</tr>
+					</thead>
+					<tbody>
+					@uib.map { t =>
+						<tr>
+							<td>@t.dateTime</td>
+							<td>@t.description</td>
+							<td>@t.amount</td>
+						</tr>
+					}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+
+}

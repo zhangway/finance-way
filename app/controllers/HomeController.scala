@@ -2,8 +2,14 @@ package controllers
 
 
 import java.io.{File, FileInputStream}
+import java.text.SimpleDateFormat
+import java.time.{LocalDateTime, LocalTime, ZoneId}
+import java.time.format.DateTimeFormatter
+import java.util.Date
 import javax.inject._
 
+import domain.TradeType
+import model.Transaction
 import org.apache.poi.hssf.usermodel.{HSSFDateUtil, HSSFWorkbook}
 import org.apache.poi.poifs.filesystem.POIFSFileSystem
 import org.apache.poi.ss.usermodel.DateUtil.isCellDateFormatted
@@ -14,6 +20,7 @@ import services.AccountService
 
 import scala.collection.JavaConversions._
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 
 
 /**
@@ -40,10 +47,16 @@ class HomeController @Inject()(accountService: AccountService)(implicit ec: Exec
   }
 
   def excel = Action {
-    val fs = new POIFSFileSystem(new FileInputStream("dnb3.xls"))
+
+
+    Ok("he")
+  }
+
+  private def allTransactions(file: File) = {
+    val fs = new POIFSFileSystem(new FileInputStream(file))
     val wb: HSSFWorkbook = new HSSFWorkbook(fs)
     val sheet = wb.getSheetAt(0)
-    println(sheet.getPhysicalNumberOfRows)
+
     def getCellString(cell: Cell) = {
       cell.getCellType match {
         case Cell.CELL_TYPE_STRING => {
@@ -57,23 +70,62 @@ class HomeController @Inject()(accountService: AccountService)(implicit ec: Exec
           " "
       }
     }
-    sheet.rowIterator().foreach { row =>
-      val cellI = row.cellIterator()
-      cellI.foreach { cell =>
-        cell.getCellType match {
-          case Cell.CELL_TYPE_STRING => println(s"String: ${cell.getStringCellValue}")
-          case Cell.CELL_TYPE_NUMERIC => {
-            if(isCellDateFormatted(cell)){
-              println(cell.getDateCellValue)
-            } else println(s"number: ${cell.getNumericCellValue}")
-
+    val rows = sheet.rowIterator().drop(1)
+    rows.map { row =>
+      val d = row.getCell(0).getDateCellValue
+      val dt = LocalDateTime.ofInstant(d.toInstant, ZoneId.of("Europe/Oslo"))
+      val description = row.getCell(1).getStringCellValue
+      val clock = description.split(" ").lastOption
+      val time = clock flatMap { s =>
+        val f = DateTimeFormatter.ofPattern("HH.mm")
+        val d  = Try(LocalTime.parse(s, f))
+        d match {
+          case Success(t) => {
+            Some(t)
           }
-          case _  => "unknown type"
+          case Failure(e ) => None
         }
       }
-    }
-
-    Ok("he")
+      val tradeDateTime = dt.withHour(time.map(_.getHour) getOrElse 0).withMinute(time.map(_.getMinute) getOrElse 0)
+      val withdrawCell = row.getCell(3)
+      val depositCell = row.getCell(4)
+      val tradeType = if ((withdrawCell == null || withdrawCell.getCellType == Cell.CELL_TYPE_BLANK) && (depositCell != null || depositCell.getCellType != Cell.CELL_TYPE_BLANK)) TradeType.Deposit else TradeType.WithDrawal
+      val amount = tradeType match {
+        case TradeType.WithDrawal => withdrawCell.getNumericCellValue
+        case TradeType.Deposit => depositCell.getNumericCellValue
+        case _ => -1
+      }
+      //println(s"${tradeType}: ${tradeDateTime} - ${amount} - Desc: ${description}")
+      Transaction(tradeDateTime, description, tradeType, amount)
+    }.toList
   }
 
+
+  def selectaccount = Action {
+    val accounts = Seq("bergen", "oslo", "uit")
+    Ok(views.html.selectAccount(accounts))
+  }
+
+  def upload = Action {
+    Ok(views.html.upload())
+  }
+
+  def fileUpload = Action(parse.multipartFormData) { request =>
+    request.body.file("transaction").map { transaction =>
+      val filename = transaction.filename
+      val contentType = transaction.contentType
+      val all = allTransactions(transaction.ref.file)
+      val deposits = all.filter(_.tradeType == TradeType.Deposit)
+      val total = deposits.map(_.amount).sum
+      val actioTrans = deposits.filter(_.description.contains("Actio Ip AS"))
+      val fromActio = actioTrans.map(_.amount).sum
+      val uibTrans = deposits.filter(_.description.contains("Universitetet i Bergen"))
+      val fromUib = uibTrans.map(_.amount).sum
+      println(s"total:${total}")
+      Ok(views.html.deposits(total, fromActio, fromUib, actioTrans, uibTrans))
+    }.getOrElse {
+      Redirect(routes.HomeController.upload).flashing(
+        "error" -> "Missing file")
+    }
+  }
 }
